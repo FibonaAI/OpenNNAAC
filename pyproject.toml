@@ -1,0 +1,56 @@
+[project]
+name = "opennnaac"
+version = "0.1.0"
+description = "Open-source implementation of the neuron experiments in Neural Networks Are Already Clean"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "causal-conv1d>=1.7.0",
+    "flash-linear-attention>=0.5.2",
+    "httpx[socks]>=0.28.1",
+    "openai>=3.39.0",
+    "pyarrow>=26.0.0",
+    "torch>=2.7.1,<2.8",
+    "transformers==5.4.0",
+]
+
+[tool.uv.extra-build-dependencies]
+# causal-conv1d's setup.py needs torch to pick a matching prebuilt wheel or compile
+causal-conv1d = [{ requirement = "torch", match-runtime = true }, "setuptools", "wheel", "ninja", "packaging"]
+
+[tool.uv.extra-build-variables]
+causal-conv1d = { CUDA_HOME = "/usr/local/cuda-12.8" }
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.2",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py311"
+extend-exclude = ["data", "models", "runs"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "C", "B", "UP", "N", "RUF", "Q"]
+ignore = ["N806", "B027", "FBT003", "C901", "E501", "UP035", "RUF005", "B904", "F403", "E721", "UP031", "RUF022"]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+docstring-code-format = false
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["experiments", "infra"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "TID252", "ARG001"]
+"__init__.py" = ["F401"]
