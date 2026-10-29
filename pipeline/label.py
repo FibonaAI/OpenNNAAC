@@ -245,9 +245,13 @@ class DashboardBuilder:
         for set_, pole in poles:
             result, basis = (neurons, None) if set_ == "N" else (controls.result, controls.basis(pole))
             meta = {"layer": pole[0], "neuron": pole[1], "sign": pole[2]}
-            uid = "u" + hashlib.sha1(json.dumps({"set": set_} | meta).encode()).hexdigest()[:10]
-            units.append(Unit(uid, set_, self.dashboard(result, pole, basis), meta))
+            units.append(Unit(self.unit_id(set_, meta), set_, self.dashboard(result, pole, basis), meta))
         return units
+
+    @staticmethod
+    def unit_id(set_: str, meta: dict) -> str:
+        """An opaque id (u + 10 hex digits) that is the same for the same set and meta in every run."""
+        return "u" + hashlib.sha1(json.dumps({"set": set_} | meta).encode()).hexdigest()[:10]
 
 
 # ---------------------------------------------------------------- labels
@@ -305,7 +309,12 @@ class Labeler:
         return f"{instruction}\n\n{intro}\n\n{body}\n\n{BATCH_FORMAT}"
 
     def ask(self, units: list[Unit]) -> list[Label]:
-        """One label per unit, failed ones with category None."""
+        """One label per unit, failed ones with category None.
+
+        Labels already complete in a reply are kept even if the reply breaks off. Units still missing after
+        `tries` requests are asked again in two halves, down to one dashboard per request, so that a
+        dashboard the endpoint refuses (finish_reason content_filter) costs only its own label.
+        """
         got: dict[str, Label] = {}
         text = ""
         for _ in range(self.tries):
@@ -313,13 +322,21 @@ class Labeler:
                 reply = self.client.chat.completions.create(
                     model=self.llm, messages=[{"role": "user", "content": self.prompt(units)}], **self.request
                 )
-                text = reply.choices[0].message.content or ""
+                choice = reply.choices[0]
+                text = choice.message.content or ""
+                if choice.finish_reason not in (None, "stop"):
+                    text += f"\n[finish_reason: {choice.finish_reason}]"
             except Exception as e:  # network errors and rate limits: retry, then record the failure
                 text = f"ERROR: {e}"
                 continue
             got |= self._parse(text, units)
             if len(got) == len(units):
                 break
+        missing = [u for u in units if u.id not in got]
+        if missing and len(units) > 1:
+            half = (len(missing) + 1) // 2
+            for part in [missing[:half], missing[half:]] if len(missing) > 1 else [missing]:
+                got |= {label.id: label for label in self.ask(part)}
         return [got.get(u.id) or Label(u.id, None, raw=text) for u in units]
 
     def label_all(self, units: list[Unit], store: "LabelStore", workers: int = 16) -> None:
@@ -336,17 +353,22 @@ class Labeler:
 
     @staticmethod
     def _parse(text: str, units: list[Unit]) -> dict[str, Label]:
-        pattern = r"\{.*\}" if len(units) == 1 else r"\[.*\]"
-        match = re.search(pattern, text, re.DOTALL)
-        try:
-            answer = json.loads(match.group(0)) if match else None
-        except json.JSONDecodeError:
-            return {}
         if len(units) == 1:
-            answers = {units[0].id: answer}
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            try:
+                answers = {units[0].id: json.loads(match.group(0)) if match else None}
+            except json.JSONDecodeError:
+                return {}
         else:
-            ids = {u.id for u in units}
-            answers = {a["id"]: a for a in answer or [] if isinstance(a, dict) and a.get("id") in ids}
+            # Each object on its own, so the complete ones count even when the array breaks off.
+            ids, decoder, answers = {u.id for u in units}, json.JSONDecoder(), {}
+            for match in re.finditer(r"\{", text):
+                try:
+                    answer, _ = decoder.raw_decode(text, match.start())
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(answer, dict) and answer.get("id") in ids:
+                    answers.setdefault(answer["id"], answer)
         labels = {uid: Label.parse(uid, a, text) for uid, a in answers.items()}
         return {uid: label for uid, label in labels.items() if label is not None}
 

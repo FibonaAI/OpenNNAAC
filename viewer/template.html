@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300..800&display=swap" rel="stylesheet">
+<style>
+/* Harbor viewer palette (zinc, square corners), light and dark. */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --border: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
+  --peak: oklch(0.93 0.09 95);
+  --peak-foreground: oklch(0.141 0.005 285.823);
+  --bar: oklch(0.552 0.016 285.938);
+  --one: oklch(0.6 0.13 155);
+  --two: oklch(0.58 0.13 250);
+  --multi: oklch(0.6 0.17 35);
+  --unclear: oklch(0.552 0.016 285.938);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.21 0.006 285.885);
+    --primary: oklch(0.92 0.004 286.32);
+    --primary-foreground: oklch(0.21 0.006 285.885);
+    --secondary: oklch(0.274 0.006 286.033);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --border: oklch(0.3023 0.006 286.033);
+    --ring: oklch(0.552 0.016 285.938);
+    --peak: oklch(0.45 0.1 95);
+    --peak-foreground: oklch(0.985 0 0);
+    --bar: oklch(0.705 0.015 286.067);
+    --one: oklch(0.72 0.14 155);
+    --two: oklch(0.7 0.13 250);
+    --multi: oklch(0.72 0.16 35);
+    --unclear: oklch(0.705 0.015 286.067);
+  }
+  html { color-scheme: dark; }
+}
+* { box-sizing: border-box; border-color: var(--border); }
+html, body { margin: 0; background: var(--background); color: var(--foreground); }
+body {
+  font-family: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px; line-height: 1.5;
+}
+a { color: inherit; }
+button, input, select { font: inherit; color: inherit; }
+.page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* page header */
+.crumbs { font-size: 13px; color: var(--muted-foreground); margin-bottom: 8px; }
+.crumbs a { text-decoration: none; }
+.crumbs a:hover { color: var(--foreground); }
+.crumbs .sep { margin: 0 8px; }
+h1 { font-size: 36px; font-weight: 400; letter-spacing: -0.05em; line-height: 1.15; margin: 0; word-break: break-all; }
+.header-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; color: var(--muted-foreground); font-size: 13px; }
+.meta b { color: var(--foreground); font-weight: 500; }
+header.page-header { margin-bottom: 24px; }
+h2 { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; margin: 32px 0 12px; }
+
+/* controls */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.input, .select, .btn {
+  height: 36px; border: 1px solid var(--border); background: var(--background); padding: 0 12px; border-radius: 0;
+}
+.input { min-width: 240px; flex: 1 1 240px; }
+.input:focus, .select:focus, .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: -1px; }
+.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover:not(:disabled) { background: var(--muted); }
+.btn:disabled { opacity: .5; cursor: default; }
+.check { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 4px; cursor: pointer; white-space: nowrap; }
+.count { color: var(--muted-foreground); font-size: 13px; margin-left: auto; white-space: nowrap; }
+
+/* table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 8px 16px; text-align: left; white-space: nowrap; vertical-align: middle; }
+th { height: 44px; font-weight: 500; border-bottom: 1px solid var(--border); user-select: none; }
+th.sortable { cursor: pointer; }
+th.sortable:hover { background: var(--muted); }
+th .arrow { color: var(--muted-foreground); margin-left: 4px; }
+tbody tr { height: 44px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: 0; }
+tbody tr.link { cursor: pointer; }
+tbody tr.link:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.dim, .dim { color: var(--muted-foreground); }
+.pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted-foreground); font-size: 13px; }
+
+/* badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; padding: 1px 8px;
+  font-size: 12px; font-weight: 500; white-space: nowrap; line-height: 18px;
+}
+.badge.outline { border-color: var(--border); }
+.badge.secondary { background: var(--secondary); }
+.cat { border-color: currentColor; background: color-mix(in oklab, currentColor 10%, transparent); }
+.cat-ONE { color: var(--one); }
+.cat-TWO_RELATED { color: var(--two); }
+.cat-MULTI_UNRELATED { color: var(--multi); }
+.cat-UNCLEAR { color: var(--unclear); }
+.cat-none { color: var(--muted-foreground); border-style: dashed; }
+.card.ref { background: var(--muted); }
+.card .ref-title { font-weight: 500; margin: 0 0 8px; white-space: normal; }
+.card .ref-score { margin: 0 0 8px; white-space: normal; }
+.card .ref-notes { color: var(--muted-foreground); font-size: 13px; margin-top: 8px; }
+.conf { color: var(--muted-foreground); font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; }
+
+/* detail */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.card { border: 1px solid var(--border); background: var(--card); padding: 16px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.card-title { font-weight: 500; }
+.card p { margin: 0; white-space: pre-wrap; }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--muted-foreground); font-size: 13px; }
+pre.raw { white-space: pre-wrap; word-break: break-word; background: var(--muted); padding: 12px; margin: 8px 0 0; font-size: 12px; max-height: 320px; overflow: auto; }
+.tokens { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); padding: 2px 8px; font-size: 13px; white-space: pre; }
+.chip .ws { color: var(--muted-foreground); }
+.ctx td { white-space: normal; vertical-align: top; }
+.ctx td.text { white-space: pre-wrap; word-break: break-word; width: 100%; line-height: 1.6; }
+.ctx td.frac { width: 120px; }
+.peak { background: var(--peak); color: var(--peak-foreground); padding: 0 2px; font-weight: 600; }
+.bar { height: 4px; background: var(--muted); margin-top: 6px; }
+.bar > i { display: block; height: 100%; background: var(--bar); }
+.notes { color: var(--muted-foreground); font-size: 13px; margin-top: 24px; }
+.empty { padding: 48px 16px; text-align: center; color: var(--muted-foreground); }
+kbd { border: 1px solid var(--border); padding: 0 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="page" id="app"></div>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const CATS = ["ONE", "TWO_RELATED", "MULTI_UNRELATED", "UNCLEAR"];
+const PAGE = 100;
+const labelers = DATA.labelers;
+const references = DATA.references || {};
+const refNames = Object.keys(references);
+// [reference, score name] pairs, each a list column, e.g. ["goodfire", "clean"].
+const refScores = refNames.flatMap((r) => [...new Set(Object.values(references[r]).flatMap((x) => Object.keys(x.scores || {})))].map((k) => [r, k]));
+const score = (r, k, id) => references[r][id]?.scores?.[k]?.value;
+const units = DATA.units;
+const byId = new Map(units.map((u) => [u.id, u]));
+const metaKeys = [...new Set(units.flatMap((u) => Object.keys(u.meta)))];
+const sets = [...new Set(units.map((u) => u.set))].sort();
+
+const state = { q: "", set: "", cats: {}, disagree: false, sort: { key: "id", dir: 1 }, page: 0 };
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const app = document.getElementById("app");
+
+function catBadge(label) {
+  if (!label) return `<span class="badge cat cat-none">—</span>`;
+  if (!label.category) return `<span class="badge cat cat-none">failed</span>`;
+  return `<span class="badge cat cat-${label.category}">${label.category}</span>`;
+}
+function conf(label) {
+  return label && label.confidence != null ? `<span class="conf">${Number(label.confidence).toFixed(2)}</span>` : "";
+}
+function agrees(u) {
+  const cats = labelers.map((l) => u.labels[l]?.category).filter(Boolean);
+  return cats.length < 2 ? null : cats.every((c) => c === cats[0]);
+}
+
+// ---------------------------------------------------------------- list
+
+function filtered() {
+  const q = state.q.trim().toLowerCase();
+  let rows = units.filter((u) => {
+    if (state.set && u.set !== state.set) return false;
+    for (const l of labelers) {
+      const want = state.cats[l];
+      if (want && (u.labels[l]?.category ?? "failed") !== want) return false;
+    }
+    if (state.disagree && agrees(u) !== false) return false;
+    if (q) {
+      const refs = refNames.map((r) => { const x = references[r][u.id]; return x ? x.title + " " + x.text : ""; });
+      const hay = [u.id, ...labelers.map((l) => u.labels[l]?.explanation ?? ""), ...refs].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const { key, dir } = state.sort;
+  const value = (u) => {
+    if (key === "id" || key === "set") return u[key];
+    if (key.startsWith("meta:")) return u.meta[key.slice(5)];
+    if (key.startsWith("cat:")) return u.labels[key.slice(4)]?.category ?? "~";
+    if (key.startsWith("conf:")) return u.labels[key.slice(5)]?.confidence ?? -1;
+    if (key.startsWith("score:")) { const [r, k] = JSON.parse(key.slice(6)); return score(r, k, u.id) ?? -1; }
+    return "";
+  };
+  return rows.slice().sort((a, b) => {
+    const x = value(a), y = value(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * dir || (a.id < b.id ? -1 : 1);
+  });
+}
+
+function renderList() {
+  const rows = filtered();
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  state.page = Math.min(state.page, pages - 1);
+  const shown = rows.slice(state.page * PAGE, (state.page + 1) * PAGE);
+  const head = (key, label, cls = "") => {
+    const arrow = state.sort.key === key ? (state.sort.dir > 0 ? "↑" : "↓") : "";
+    return `<th class="sortable ${cls}" data-sort="${esc(key)}">${esc(label)}<span class="arrow">${arrow}</span></th>`;
+  };
+  const catSelect = (l) => `<select class="select" data-cat="${esc(l)}" title="${esc(l)}">
+      <option value="">${esc(l)}: all</option>
+      ${[...CATS, "failed"].map((c) => `<option value="${c}" ${state.cats[l] === c ? "selected" : ""}>${esc(l)}: ${c}</option>`).join("")}
+    </select>`;
+
+  app.innerHTML = `
+    <header class="page-header">
+      <div class="crumbs">${esc(DATA.title)}</div>
+      <div class="header-row"><h1>Units</h1></div>
+      <div class="meta">
+        <span><b>${units.length}</b> units</span>
+        <span>labelers <b>${labelers.map(esc).join(", ")}</b></span>
+        ${sets.map((s) => `<span>${esc(s)} <b>${units.filter((u) => u.set === s).length}</b></span>`).join("")}
+      </div>
+    </header>
+    <div class="toolbar">
+      <input class="input" id="q" placeholder="Search id, explanation or reference…" value="${esc(state.q)}">
+      <select class="select" id="set">
+        <option value="">All sets</option>
+        ${sets.map((s) => `<option ${state.set === s ? "selected" : ""}>${esc(s)}</option>`).join("")}
+      </select>
+      ${labelers.map(catSelect).join("")}
+      ${labelers.length > 1 ? `<label class="check"><input type="checkbox" id="disagree" ${state.disagree ? "checked" : ""}> Disagreements only</label>` : ""}
+      <span class="count">${rows.length} of ${units.length}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          ${head("id", "Unit")}${head("set", "Set")}
+          ${metaKeys.map((k) => head("meta:" + k, k, "num")).join("")}
+          ${labelers.map((l) => head("cat:" + l, l)).join("")}
+          ${refScores.map(([r, k]) => head("score:" + JSON.stringify([r, k]), `${r} ${k}`, "num")).join("")}
+        </tr></thead>
+        <tbody>
+          ${shown.map((u) => {
+            return `<tr class="link" data-id="${esc(u.id)}">
+              <td>${esc(u.id)}</td>
+              <td><span class="badge outline">${esc(u.set)}</span></td>
+              ${metaKeys.map((k) => `<td class="num">${k === "sign" ? (u.meta[k] > 0 ? "+" : u.meta[k] < 0 ? "−" : "") : esc(u.meta[k] ?? "")}</td>`).join("")}
+              ${labelers.map((l) => `<td>${catBadge(u.labels[l])}${conf(u.labels[l])}</td>`).join("")}
+              ${refScores.map(([r, k]) => `<td class="num">${score(r, k, u.id) ?? ""}</td>`).join("")}
+            </tr>`;
+          }).join("") || `<tr><td colspan="99" class="empty">No units match.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <span>Page ${state.page + 1} of ${pages}</span>
+      <button class="btn" id="prev" ${state.page === 0 ? "disabled" : ""}>Previous</button>
+      <button class="btn" id="next" ${state.page >= pages - 1 ? "disabled" : ""}>Next</button>
+    </div>`;
+
+  const q = document.getElementById("q");
+  q.addEventListener("input", () => { state.q = q.value; state.page = 0; renderKeepingFocus("q"); });
+  document.getElementById("set").addEventListener("change", (e) => { state.set = e.target.value; state.page = 0; renderList(); });
+  app.querySelectorAll("[data-cat]").forEach((s) =>
+    s.addEventListener("change", (e) => { state.cats[s.dataset.cat] = e.target.value; state.page = 0; renderList(); }));
+  document.getElementById("disagree")?.addEventListener("change", (e) => { state.disagree = e.target.checked; state.page = 0; renderList(); });
+  app.querySelectorAll("th[data-sort]").forEach((th) => th.addEventListener("click", () => {
+    const key = th.dataset.sort;
+    state.sort = { key, dir: state.sort.key === key ? -state.sort.dir : 1 };
+    renderList();
+  }));
+  app.querySelectorAll("tr[data-id]").forEach((tr) => tr.addEventListener("click", () => { location.hash = "#/u/" + tr.dataset.id; }));
+  document.getElementById("prev").addEventListener("click", () => { state.page--; renderList(); });
+  document.getElementById("next").addEventListener("click", () => { state.page++; renderList(); });
+}
+
+function renderKeepingFocus(id) {
+  const el = document.getElementById(id), pos = el.selectionStart;
+  renderList();
+  const again = document.getElementById(id);
+  again.focus();
+  again.setSelectionRange(pos, pos);
+}
+
+// ---------------------------------------------------------------- detail
+
+function token(t) {
+  // Make whitespace visible: leading/trailing spaces as ␣, newlines as ↵, tabs as →.
+  return esc(t).replace(/ /g, '<span class="ws">␣</span>').replace(/\n/g, '<span class="ws">↵</span>').replace(/\t/g, '<span class="ws">→</span>');
+}
+function contextText(text) {
+  const open = text.indexOf("[["), close = open < 0 ? -1 : text.indexOf("]]", open + 2);
+  if (open < 0 || close < 0) return esc(text);
+  return esc(text.slice(0, open)) + `<span class="peak">${esc(text.slice(open + 2, close))}</span>` + esc(text.slice(close + 2));
+}
+function contexts(title, list) {
+  if (!list?.length) return `<h2>${title}</h2><div class="dim">None.</div>`;
+  return `<h2>${title} <span class="dim">${list.length}</span></h2>
+    <div class="table-wrap"><table class="ctx">
+      <thead><tr><th>#</th><th>act_frac</th><th>Context</th></tr></thead>
+      <tbody>${list.map((c, i) => `<tr>
+        <td class="dim">${i + 1}</td>
+        <td class="frac">${Number(c.act_frac).toFixed(3)}<div class="bar"><i style="width:${Math.min(100, 100 * c.act_frac)}%"></i></div></td>
+        <td class="text">${contextText(c.text)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+function renderDetail(id) {
+  const u = byId.get(id);
+  if (!u) { app.innerHTML = `<div class="empty">Unit ${esc(id)} not found. <a href="#/">Back to units</a></div>`; return; }
+  const d = DATA.dashboards[id] || {};
+  const order = filtered().map((x) => x.id);
+  const at = order.indexOf(id);
+  const prev = at > 0 ? order[at - 1] : null, next = at >= 0 && at < order.length - 1 ? order[at + 1] : null;
+
+  app.innerHTML = `
+    <header class="page-header">
+      <div class="crumbs"><a href="#/">Units</a><span class="sep">/</span>${esc(id)}</div>
+      <div class="header-row">
+        <h1>${esc(id)}</h1>
+        <div class="toolbar" style="margin:0">
+          <button class="btn" id="prev" ${prev ? "" : "disabled"} title="Previous unit (←)">← Prev</button>
+          <button class="btn" id="next" ${next ? "" : "disabled"} title="Next unit (→)">Next →</button>
+        </div>
+      </div>
+      <div class="meta">
+        <span>set <span class="badge outline">${esc(u.set)}</span></span>
+        ${Object.entries(u.meta).map(([k, v]) => `<span>${esc(k)} <b>${k === "sign" ? (v > 0 ? "+" : "−") : esc(v)}</b></span>`).join("")}
+        ${at >= 0 ? `<span>${at + 1} of ${order.length} in list</span>` : ""}
+      </div>
+    </header>
+
+    <h2>Labels</h2>
+    <div class="cards">
+      ${refNames.map((r) => {
+        const x = references[r][id];
+        if (!x) return "";
+        return `<div class="card ref">
+          <div class="card-head"><span class="card-title">${esc(r)}</span><span class="badge outline">reference</span></div>
+          <p class="ref-title">${esc(x.title)}</p>
+          ${Object.entries(x.scores || {}).map(([k, s]) => `<p class="ref-score"><span class="badge outline">${esc(k)} ${esc(s.value)}${s.max != null ? "/" + esc(s.max) : ""}</span> ${esc(s.note || "")}</p>`).join("")}
+          <p>${esc(x.text)}</p>
+          ${(x.notes || []).map((n) => `<p class="ref-notes">${esc(n)}</p>`).join("")}
+          ${x.source ? `<p class="ref-notes">${esc(x.source)}</p>` : ""}
+        </div>`;
+      }).join("")}
+      ${labelers.map((l) => {
+        const lab = u.labels[l];
+        return `<div class="card">
+          <div class="card-head"><span class="card-title">${esc(l)}</span><span>${catBadge(lab)}${conf(lab)}</span></div>
+          ${lab ? `<p>${esc(lab.explanation || "")}</p>` : `<p class="dim">Not labeled.</p>`}
+          ${lab?.raw ? `<details><summary>Raw reply</summary><pre class="raw">${esc(lab.raw)}</pre></details>` : ""}
+        </div>`;
+      }).join("")}
+    </div>
+
+    <h2>Output tokens</h2>
+    <div class="tokens">
+      <div class="card"><div class="card-head"><span class="card-title">Promoted</span></div>
+        <div class="chips">${(d.promoted_tokens || []).map((t) => `<span class="chip">${token(t)}</span>`).join("")}</div></div>
+      <div class="card"><div class="card-head"><span class="card-title">Suppressed</span></div>
+        <div class="chips">${(d.suppressed_tokens || []).map((t) => `<span class="chip">${token(t)}</span>`).join("")}</div></div>
+    </div>
+
+    ${contexts("Top contexts", d.top_contexts)}
+    ${contexts("Band contexts (30–70%)", d.band_contexts_30_70pct)}
+    ${d.notes ? `<div class="notes">${esc(d.notes)}</div>` : ""}
+    <div class="notes"><kbd>←</kbd> <kbd>→</kbd> previous / next unit, <kbd>Esc</kbd> back to the list.</div>`;
+
+  document.getElementById("prev").addEventListener("click", () => prev && (location.hash = "#/u/" + prev));
+  document.getElementById("next").addEventListener("click", () => next && (location.hash = "#/u/" + next));
+  detailKeys = { prev, next };
+}
+
+// ---------------------------------------------------------------- routing
+
+let detailKeys = null;
+document.addEventListener("keydown", (e) => {
+  if (!detailKeys || e.target.closest("input, select, textarea")) return;
+  if (e.key === "ArrowLeft" && detailKeys.prev) location.hash = "#/u/" + detailKeys.prev;
+  else if (e.key === "ArrowRight" && detailKeys.next) location.hash = "#/u/" + detailKeys.next;
+  else if (e.key === "Escape") location.hash = "#/";
+});
+
+function route() {
+  const m = location.hash.match(/^#\/u\/(.+)$/);
+  if (m) { renderDetail(decodeURIComponent(m[1])); window.scrollTo(0, 0); }
+  else { detailKeys = null; renderList(); }
+}
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>

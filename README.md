@@ -48,16 +48,6 @@ uv run build_mix_corpus.py --out data/mix-55m.jsonl --tokens 55000000
   records each source's file, commit, documents and tokens. From mainland China, ModelScope is
   fastest without the proxy: add `.modelscope.cn` to `no_proxy`.
 
-## Code layout
-
-- `infra/`: model loading, MLP hooks, aggregators, multi-GPU collection and edits; nothing experiment-specific.
-- `pipeline/`: building blocks of the neuron experiments, without entry points.
-  `corpus.py` (`DatasetHub`, `Corpus`), `scanner.py` (`Scanner`, `ScanResult`),
-  `controls.py` (IRSI's R and M control units) and `label.py` (`DirectLogitEffect`, `Dashboard`,
-  `DashboardBuilder`, `Labeler`, `LabelStore`).
-- `experiments/`: entry scripts, one per experiment. The corpus preparation script,
-  `build_mix_corpus.py`, is at the project root.
-
 ## Experiment 1: large-corpus scan
 
 ```bash
@@ -80,9 +70,6 @@ dashboards in a blind shuffled order, and labels them through an OpenAI-compatib
 (`OPENAI_API_KEY`, `OPENAI_BASE_URL`) with IRSI's instruction; `--batch 12` sends 12 dashboards
 per request and `--dry-run` prints the first prompt without calling the API. Labels go to
 `labels.jsonl` (resumable) and the share of each category per set to `labels_summary.json`.
-
-`experiments/irsi_check.py` checks the pipeline against IRSI's released Qwen3-32B dashboards
-(activations, promoted / suppressed tokens, labels).
 
 ## Acknowledgements
 
