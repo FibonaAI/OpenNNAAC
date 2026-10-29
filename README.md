@@ -74,8 +74,7 @@ per request and `--dry-run` prints the first prompt without calling the API. Lab
 ## Acknowledgements
 
 Experiment 1 follows IRSI's replication on Qwen3-32B
-([irsi.ai/notes/already-clean](https://irsi.ai/notes/already-clean/)): its labeling protocol,
-control units and corpus mix, checked against its released dashboards.
+([irsi.ai/notes/already-clean](https://irsi.ai/notes/already-clean/)).
 
 ## License
 
