@@ -191,6 +191,32 @@ class BandSample:
         return {"values": self.values.cpu(), "docs": self.docs.cpu(), "positions": self.positions.cpu()}
 
 
+class Projected:
+    """Runs `inner` on activations projected onto fixed directions instead of on the neurons.
+
+    dirs is [L, N, D]: unit d of layer l has activation act @ dirs[l, :, d], and `inner` sees D units
+    per layer. Used for control units such as random directions and planted mixtures of two neurons.
+    """
+
+    def __init__(self, inner, dirs: Tensor, device: torch.device | str):
+        self.inner = inner
+        self.dirs = dirs.to(device)
+
+    def __call__(self, layer: int, gate: Tensor, up: Tensor, act: Tensor, mask: Tensor, doc_ids: Tensor) -> None:
+        self.inner(layer, gate, up, act.float() @ self.dirs[layer], mask, doc_ids)
+
+    def merge(self, other: Self) -> None:
+        self.inner.merge(other.inner)
+
+    def cpu(self) -> Self:
+        self.dirs = self.dirs.cpu()
+        self.inner = self.inner.cpu()
+        return self
+
+    def state_dict(self) -> dict[str, Tensor]:
+        return self.inner.state_dict()
+
+
 class Gather:
     """Every real token's activation for a fixed list of neurons.
 

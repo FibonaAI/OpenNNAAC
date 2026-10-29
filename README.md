@@ -29,37 +29,67 @@ or a Hugging Face model id, downloaded once into the Hugging Face cache.
 
 ## Entry scripts
 
-### `fetch_corpus.py`: prepare a text corpus
+### `build_mix_corpus.py`: prepare the corpus
 
-Downloads one parquet shard of a dataset and writes its first `--docs` documents as JSONL
-(`{"id", "text"}` per line), the corpus format of experiment 1:
+Builds the corpus of experiment 1 as JSONL (`{"id", "source", "text"}` per line) with the source
+proportions of IRSI's Qwen3-32B corpus: 70% web, 15% Wikipedia in 10 languages, 15% code.
 
 ```bash
-uv run fetch_corpus.py --out data/fineweb-edu.jsonl                 # ModelScope mirror
-uv run fetch_corpus.py --out data/fineweb-edu.jsonl --source hf     # Hugging Face
+uv run build_mix_corpus.py --out data/mix-55m.jsonl --tokens 55000000
 ```
 
-- Default data: the first shard of `HuggingFaceFW/fineweb-edu` `sample/10BT` (about 2 GB,
-  roughly 700M tokens), first 50,000 documents (about 50M tokens).
-- `--revision` takes a branch, tag or commit of the chosen source; it is resolved to a commit,
-  recorded with the document count in `<out>.manifest.json`, and the shard is cached per
-  commit, so reruns do not download again.
-- From mainland China, ModelScope is fastest without the proxy: add `.modelscope.cn` to
-  `no_proxy` (about 20 MB/s, versus about 10 MB/s for Hugging Face through the proxy).
+- Sources: FineWeb-Edu `sample/10BT` for web, Wikipedia `20231101` for zh, ru, es, de, ja, ko,
+  ar, hi, bn and fr, and `bigcode/the-stack-smol` for a dozen programming languages. IRSI used
+  FineWeb and `codeparrot/github-code-clean`, which are not mirrored on ModelScope.
+- Budgets count tokens after each document is cut to `--max-doc-tokens` (1024, scan's window),
+  and documents of all sources are shuffled together, so any prefix keeps the mix. The 55M-token
+  build above has 94,931 documents.
+- Files come from ModelScope and are cached next to `--out` per commit; `<out>.manifest.json`
+  records each source's file, commit, documents and tokens. From mainland China, ModelScope is
+  fastest without the proxy: add `.modelscope.cn` to `no_proxy`.
+
+## Code layout
+
+- `infra/`: model loading, MLP hooks, aggregators, multi-GPU collection and edits; nothing experiment-specific.
+- `pipeline/`: building blocks of the neuron experiments, without entry points.
+  `corpus.py` (`DatasetHub`, `Corpus`), `scanner.py` (`Scanner`, `ScanResult`),
+  `controls.py` (IRSI's R and M control units) and `label.py` (`DirectLogitEffect`, `Dashboard`,
+  `DashboardBuilder`, `Labeler`, `LabelStore`).
+- `experiments/`: entry scripts, one per experiment. The corpus preparation script,
+  `build_mix_corpus.py`, is at the project root.
 
 ## Experiment 1: large-corpus scan
 
 ```bash
-uv run python -m experiments.scan scan --corpus data/fineweb-edu.jsonl --out runs/scan \
+uv run python -m experiments.neuron_scan scan --corpus data/mix-55m.jsonl --out runs/scan \
     --devices 0,1,2,3,4,5,6,7
-uv run python -m experiments.scan label --run runs/scan --llm <model> --dry-run
+uv run python -m experiments.neuron_scan controls --run runs/scan --devices 0,1,2,3,4,5,6,7
+uv run python -m experiments.neuron_scan label --run runs/scan --llm <model> --controls --dry-run
 ```
 
-`scan` runs one model replica per listed GPU. For every neuron and direction it keeps the 20
-strongest tokens and a sample of tokens at 30–70% of that maximum, and saves them to
-`<out>/scan.pt` with enough to recover each token's context. The defaults (10M tokens,
-1024-token windows, batch 8) take about 5.5 minutes on 8 H20s.
+`scan` runs one model replica per listed GPU. For every neuron pole it keeps the 20 strongest
+tokens and a sample of tokens at 30–70% of that maximum, and saves them to `<out>/scan.pt` with
+enough to recover each token's context. The defaults (10M tokens, 1024-token windows, batch 8)
+take about 5.5 minutes on 8 H20s.
 
-`label` shows sampled neuron directions to an LLM through an OpenAI-compatible API
-(`OPENAI_API_KEY`, `OPENAI_BASE_URL`) and asks it to name them; `--dry-run` prints the first
-prompt without calling the API.
+`controls` scans IRSI's control units the same way into `controls.pt`: per layer, random
+directions (R) and planted mixtures of two neurons (M).
+
+`label` turns sampled neuron poles, and with `--controls` every control unit, into IRSI-style
+dashboards in a blind shuffled order, and labels them through an OpenAI-compatible API
+(`OPENAI_API_KEY`, `OPENAI_BASE_URL`) with IRSI's instruction; `--batch 12` sends 12 dashboards
+per request and `--dry-run` prints the first prompt without calling the API. Labels go to
+`labels.jsonl` (resumable) and the share of each category per set to `labels_summary.json`.
+
+`experiments/irsi_check.py` checks the pipeline against IRSI's released Qwen3-32B dashboards
+(activations, promoted / suppressed tokens, labels).
+
+## Acknowledgements
+
+Experiment 1 follows IRSI's replication on Qwen3-32B
+([irsi.ai/notes/already-clean](https://irsi.ai/notes/already-clean/)): its labeling protocol,
+control units and corpus mix, checked against its released dashboards.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

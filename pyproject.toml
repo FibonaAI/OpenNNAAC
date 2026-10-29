@@ -2,6 +2,7 @@
 name = "opennnaac"
 version = "0.1.0"
 description = "Open-source implementation of the neuron experiments in Neural Networks Are Already Clean"
+license = "MIT"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "causal-conv1d>=1.7.0",
@@ -46,7 +47,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-first-party = ["experiments", "infra"]
+known-first-party = ["experiments", "infra", "pipeline"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
